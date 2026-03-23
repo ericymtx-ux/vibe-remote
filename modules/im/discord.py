@@ -601,7 +601,16 @@ class DiscordBot(BaseIMClient):
             logger.debug("Failed to send unauthorized message: %s", err)
 
     async def _send_auth_denial(self, channel_id: str, user_id: str, auth_result, interaction=None):
-        """Send denial message for failed auth check."""
+        """Send denial message for failed auth check.
+
+        For normal channel messages, suppress `unauthorized_channel` chatter to avoid
+        polluting channels that are intentionally left disabled. Keep explicit feedback
+        for interactive surfaces (buttons, slash-command-like flows) via ephemeral replies.
+        """
+        if auth_result.denial == "unauthorized_channel" and interaction is None:
+            logger.debug("Suppressing unauthorized_channel denial in Discord channel %s", channel_id)
+            return
+
         msg = self.build_auth_denial_text(auth_result.denial, channel_id)
         if not msg:
             return
